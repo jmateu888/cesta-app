@@ -184,27 +184,22 @@ if page == "🗓️ Planificación":
     dias  = [today + timedelta(days=i) for i in range(10)]
     selections = {}
 
-    header_cols = st.columns([2, 3, 3])
-    header_cols[0].markdown("**Día**")
-    header_cols[1].markdown("**🍽️ Comida**")
-    header_cols[2].markdown("**🌙 Cena**")
-
     for d in dias:
-        c1, c2, c3 = st.columns([2, 3, 3])
+        st.markdown(f"**📅 {format_fecha(d)}**")
+        c1, c2 = st.columns(2)
         with c1:
-            st.markdown(f"**{format_fecha(d)}**")
-        with c2:
             prev = plan_lookup.get((d, "comida"), "— sin planificar —")
             idx  = opciones_comida.index(prev) if prev in opciones_comida else 0
             selections[(d, "comida")] = st.selectbox(
-                "Comida", opciones_comida, index=idx, key=f"c_{d}", label_visibility="collapsed"
+                "🍽️ Comida", opciones_comida, index=idx, key=f"c_{d}"
             )
-        with c3:
+        with c2:
             prev = plan_lookup.get((d, "cena"), "— sin planificar —")
             idx  = opciones_cena.index(prev) if prev in opciones_cena else 0
             selections[(d, "cena")] = st.selectbox(
-                "Cena", opciones_cena, index=idx, key=f"ce_{d}", label_visibility="collapsed"
+                "🌙 Cena", opciones_cena, index=idx, key=f"ce_{d}"
             )
+        st.markdown("---")
 
     st.markdown("---")
     if st.button("💾 Guardar planificación", type="primary"):
@@ -299,8 +294,8 @@ elif page == "🛍️ Lista de la compra":
         .sort_values(["supermercado", "ingrediente"])
     )
 
-    ORDEN = ["Mercadona", "Consum", "Cualquiera", "Sin asignar"]
-    ICONOS= {"Mercadona": "🟢", "Consum": "🔵", "Cualquiera": "⚪", "Sin asignar": "⚠️"}
+    ORDEN = ["Mercadona", "Consum", "Pescatería", "Carnicería", "Cualquiera", "Sin asignar"]
+    ICONOS= {"Mercadona": "🟢", "Consum": "🔵", "Pescatería": "🐟", "Carnicería": "🥩", "Cualquiera": "⚪", "Sin asignar": "⚠️"}
 
     cols = st.columns(len([s for s in ORDEN if s in agg["supermercado"].values]))
     col_idx = 0
@@ -392,7 +387,7 @@ elif page == "🏪 Ingredientes":
         use_container_width=True,
         column_config={
             "supermercado": st.column_config.SelectboxColumn(
-                "Supermercado", options=["Mercadona", "Consum", "Cualquiera"]
+                "Supermercado", options=["Mercadona", "Consum", "Pescatería", "Carnicería", "Cualquiera"]
             )
         },
     )

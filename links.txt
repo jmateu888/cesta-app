@@ -1,0 +1,2 @@
+PC → el navegador se abre en http://localhost:8501 ✅
+iPhone → sigues entrando en http://192.168.18.28:8501 ✅
