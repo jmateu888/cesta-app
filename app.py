@@ -35,11 +35,9 @@ def init_data():
                 "Ensalada de atún", "Salmón a la plancha",
                 "Croquetas caseras", "Verduras a la plancha con huevo",
             ],
-            "tipo": [
-                "comida", "comida", "comida", "comida", "comida", "comida",
-                "comida", "comida",
-                "cena", "cena", "cena", "cena", "cena", "cena",
-            ],
+            #        Paella  Lente  Pasta  Torti  Arroz  Pollo  Ens    Gazp   Crema  Huevos Atún   Salm   Croq   Verd
+            "comida":[True,  True,  True,  True,  True,  True,  True,  True,  False, False, True,  False, False, False],
+            "cena":  [False, False, True,  True,  False, True,  True,  True,  True,  True,  True,  True,  True,  True ],
         }).to_excel(COMIDAS_FILE, index=False)
 
     if not RECETAS_FILE.exists():
@@ -120,7 +118,14 @@ init_data()
 # ---------------------------------------------------------------------------
 @st.cache_data(ttl=10)
 def load_comidas():
-    return pd.read_excel(COMIDAS_FILE)
+    df = pd.read_excel(COMIDAS_FILE)
+    # Migración: formato antiguo con columna "tipo" → nuevo con "comida"/"cena"
+    if "tipo" in df.columns and "comida" not in df.columns:
+        df["comida"] = df["tipo"] == "comida"
+        df["cena"]   = df["tipo"] == "cena"
+        df = df.drop(columns=["tipo"])
+        df.to_excel(COMIDAS_FILE, index=False)
+    return df
 
 @st.cache_data(ttl=10)
 def load_recetas():
@@ -169,10 +174,10 @@ if page == "🗓️ Planificación":
 
     # Opciones por tipo
     opciones_comida = ["— sin planificar —"] + sorted(
-        comidas_df[comidas_df["tipo"] == "comida"]["nombre"].tolist()
+        comidas_df[comidas_df["comida"] == True]["nombre"].tolist()
     )
     opciones_cena = ["— sin planificar —"] + sorted(
-        comidas_df[comidas_df["tipo"] == "cena"]["nombre"].tolist()
+        comidas_df[comidas_df["cena"] == True]["nombre"].tolist()
     )
 
     # Lookup de lo que ya está guardado
@@ -362,7 +367,8 @@ elif page == "📖 Recetas":
             num_rows="dynamic",
             use_container_width=True,
             column_config={
-                "tipo": st.column_config.SelectboxColumn("Tipo", options=["comida", "cena"])
+                "comida": st.column_config.CheckboxColumn("🍽️ Comida"),
+                "cena":   st.column_config.CheckboxColumn("🌙 Cena"),
             },
         )
         if st.button("💾 Guardar platos"):
