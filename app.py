@@ -339,7 +339,7 @@ elif page == "📖 Recetas":
             st.cache_data.clear()
 
     with tab_platos:
-        st.markdown("Añade o edita platos del catálogo.")
+        st.markdown("Añade, edita o elimina platos del catálogo.")
         edited_comidas = st.data_editor(
             comidas_df[["nombre", "comida", "cena"]],
             num_rows="dynamic",
@@ -354,21 +354,6 @@ elif page == "📖 Recetas":
             save_table("comidas", edited_comidas)
             st.success("Lista de platos actualizada.")
             st.cache_data.clear()
-
-        st.markdown("---")
-        st.subheader("🗑️ Borrar plato")
-        plato_a_borrar = st.selectbox(
-            "Selecciona el plato a borrar",
-            sorted(comidas_df["nombre"].tolist()),
-            key="borrar_plato"
-        )
-        if st.button("🗑️ Borrar plato", type="secondary"):
-            sb = get_client()
-            sb.table("comidas").delete().eq("nombre", plato_a_borrar).execute()
-            sb.table("recetas").delete().eq("comida", plato_a_borrar).execute()
-            st.success(f"'{plato_a_borrar}' eliminado (también su receta).")
-            st.cache_data.clear()
-            st.rerun()
 
 # ===========================================================================
 # PÁGINA: INGREDIENTES
