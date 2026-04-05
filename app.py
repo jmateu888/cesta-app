@@ -161,7 +161,10 @@ if page == "🗓️ Planificación":
         vals = plan_df["personas"].dropna()
         if not vals.empty:
             default_personas = int(vals.iloc[0])
-    personas = st.number_input("👥 Número de personas", min_value=1, max_value=20, value=default_personas)
+    default_personas = st.number_input(
+        "👥 Personas por defecto", min_value=1, max_value=20, value=default_personas,
+        help="Se aplicará a todas las comidas. Puedes cambiarlo individualmente en cada una."
+    )
 
     st.markdown("---")
 
@@ -172,35 +175,48 @@ if page == "🗓️ Planificación":
         comidas_df[comidas_df["cena"] == True]["nombre"].tolist()
     )
 
+    # Lookup de comida y personas guardadas
     plan_lookup = {}
+    personas_lookup = {}
     for _, row in plan_df.iterrows():
-        plan_lookup[(row["fecha"], row["tipo"])] = row["comida"]
+        plan_lookup[(row["fecha"], row["tipo"])]    = row["comida"]
+        personas_lookup[(row["fecha"], row["tipo"])]= int(row["personas"])
 
     today = date.today()
     dias  = [today + timedelta(days=i) for i in range(10)]
-    selections = {}
+    selections = {}  # (fecha, tipo) -> (comida, personas)
 
     for d in dias:
         st.markdown(f"**📅 {format_fecha(d)}**")
-        c1, c2 = st.columns(2)
+        c1, c2, c3, c4 = st.columns([4, 1, 4, 1])
         with c1:
             prev = plan_lookup.get((d, "comida"), "— sin planificar —")
             idx  = opciones_comida.index(prev) if prev in opciones_comida else 0
-            selections[(d, "comida")] = st.selectbox(
-                "🍽️ Comida", opciones_comida, index=idx, key=f"c_{d}"
-            )
+            comida_sel = st.selectbox("🍽️ Comida", opciones_comida, index=idx, key=f"c_{d}")
         with c2:
+            p_comida = st.number_input(
+                "👥", min_value=1, max_value=20,
+                value=personas_lookup.get((d, "comida"), default_personas),
+                key=f"pc_{d}"
+            )
+        with c3:
             prev = plan_lookup.get((d, "cena"), "— sin planificar —")
             idx  = opciones_cena.index(prev) if prev in opciones_cena else 0
-            selections[(d, "cena")] = st.selectbox(
-                "🌙 Cena", opciones_cena, index=idx, key=f"ce_{d}"
+            cena_sel = st.selectbox("🌙 Cena", opciones_cena, index=idx, key=f"ce_{d}")
+        with c4:
+            p_cena = st.number_input(
+                "👥", min_value=1, max_value=20,
+                value=personas_lookup.get((d, "cena"), default_personas),
+                key=f"pce_{d}"
             )
+        selections[(d, "comida")] = (comida_sel, p_comida)
+        selections[(d, "cena")]   = (cena_sel,   p_cena)
         st.markdown("---")
 
     if st.button("💾 Guardar planificación", type="primary"):
         rows = [
-            {"fecha": str(d), "tipo": tipo, "comida": comida, "personas": int(personas)}
-            for (d, tipo), comida in selections.items()
+            {"fecha": str(d), "tipo": tipo, "comida": comida, "personas": int(pers)}
+            for (d, tipo), (comida, pers) in selections.items()
             if comida != "— sin planificar —"
         ]
         sb = get_client()
