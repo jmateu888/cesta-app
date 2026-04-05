@@ -156,6 +156,12 @@ if page == "🗓️ Planificación":
     comidas_df = load_comidas()
     plan_df    = load_planificacion()
 
+    c1, c2 = st.columns(2)
+    with c1:
+        num_dias = st.number_input("📅 Días a planificar", min_value=1, max_value=30, value=10)
+    with c2:
+        pass
+
     default_personas = 2
     if not plan_df.empty and "personas" in plan_df.columns:
         vals = plan_df["personas"].dropna()
@@ -183,7 +189,7 @@ if page == "🗓️ Planificación":
         personas_lookup[(row["fecha"], row["tipo"])]= int(row["personas"])
 
     today = date.today()
-    dias  = [today + timedelta(days=i) for i in range(10)]
+    dias  = [today + timedelta(days=i) for i in range(num_dias)]
     selections = {}  # (fecha, tipo) -> (comida, personas)
 
     for d in dias:
