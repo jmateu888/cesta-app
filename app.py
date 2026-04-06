@@ -25,12 +25,22 @@ def get_client():
 
 # ---------------------------------------------------------------------------
 # Lectura / escritura de tablas
+# Columnas por defecto para cada tabla (evita KeyError cuando están vacías)
+COLUMNAS = {
+    "comidas":       ["nombre", "comida", "cena"],
+    "recetas":       ["comida", "ingrediente", "cantidad", "unidad"],
+    "ingredientes":  ["ingrediente", "supermercado"],
+    "planificacion": ["fecha", "tipo", "comida", "personas"],
+}
+
 # ---------------------------------------------------------------------------
 @st.cache_data(ttl=15)
 def load_table(name: str) -> pd.DataFrame:
     sb = get_client()
     response = sb.table(name).select("*").execute()
-    return pd.DataFrame(response.data)
+    if response.data:
+        return pd.DataFrame(response.data)
+    return pd.DataFrame(columns=COLUMNAS.get(name, []))
 
 def save_table(name: str, df: pd.DataFrame):
     sb = get_client()
@@ -48,7 +58,7 @@ def load_comidas() -> pd.DataFrame:
 
 def load_planificacion() -> pd.DataFrame:
     df = load_table("planificacion")
-    if not df.empty and "fecha" in df.columns:
+    if not df.empty:
         df["fecha"] = pd.to_datetime(df["fecha"], errors="coerce").dt.date
     return df
 
