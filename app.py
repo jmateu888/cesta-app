@@ -333,8 +333,11 @@ elif page == "🛍️ Lista de la compra":
 elif page == "📖 Recetas":
     st.title("📖 Recetas")
 
-    comidas_df = load_comidas()
-    recetas_df = load_table("recetas")
+    comidas_df      = load_comidas()
+    recetas_df      = load_table("recetas")
+    ingredientes_df = load_table("ingredientes")
+
+    opciones_ingredientes = sorted(ingredientes_df["ingrediente"].dropna().tolist()) if not ingredientes_df.empty else []
 
     tab_ver, tab_platos = st.tabs(["Ingredientes por plato", "Gestionar platos"])
 
@@ -346,15 +349,21 @@ elif page == "📖 Recetas":
         if subset.empty:
             st.info("Este plato aún no tiene receta.")
 
+        if not opciones_ingredientes:
+            st.warning("Primero añade ingredientes en la sección 🏪 Ingredientes.")
+
         edited = st.data_editor(
             subset[["ingrediente", "cantidad", "unidad"]] if not subset.empty
             else pd.DataFrame(columns=["ingrediente", "cantidad", "unidad"]),
             num_rows="dynamic",
             use_container_width=True,
             column_config={
+                "ingrediente": st.column_config.SelectboxColumn(
+                    "Ingrediente", options=opciones_ingredientes
+                ),
                 "unidad": st.column_config.SelectboxColumn(
                     "Unidad", options=["g", "kg", "ml", "l", "ud", "lata", "cucharada"]
-                )
+                ),
             },
         )
 
