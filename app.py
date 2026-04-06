@@ -132,12 +132,6 @@ def init_data():
 # ---------------------------------------------------------------------------
 st.set_page_config(page_title="Cesta App", page_icon="🛒", layout="wide")
 
-try:
-    init_data()
-except Exception as e:
-    st.error(f"Error al conectar con Supabase: {e}")
-    st.stop()
-
 st.sidebar.title("🛒 Cesta App")
 st.sidebar.markdown("---")
 page = st.sidebar.radio("Sección", [
