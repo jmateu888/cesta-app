@@ -27,10 +27,11 @@ def get_client():
 # Lectura / escritura de tablas
 # Columnas por defecto para cada tabla (evita KeyError cuando están vacías)
 COLUMNAS = {
-    "comidas":       ["nombre", "comida", "cena"],
-    "recetas":       ["comida", "ingrediente", "cantidad", "unidad"],
-    "ingredientes":  ["ingrediente", "supermercado", "marca"],
-    "planificacion": ["fecha", "tipo", "comida", "personas"],
+    "comidas":        ["nombre", "comida", "cena"],
+    "recetas":        ["comida", "ingrediente", "cantidad", "unidad"],
+    "ingredientes":   ["ingrediente", "supermercado", "marca"],
+    "planificacion":  ["fecha", "tipo", "comida", "personas"],
+    "supermercados":  ["nombre"],
 }
 
 # ---------------------------------------------------------------------------
@@ -389,30 +390,53 @@ elif page == "📖 Recetas":
 elif page == "🏪 Ingredientes":
     st.title("🏪 Ingredientes y supermercados")
 
-    ingredientes_df = load_table("ingredientes")
+    tab_ing, tab_super = st.tabs(["Ingredientes", "Gestionar supermercados"])
 
-    st.markdown("Asigna cada ingrediente al supermercado donde lo compras habitualmente.")
+    with tab_ing:
+        ingredientes_df   = load_table("ingredientes")
+        supermercados_df  = load_table("supermercados")
 
-    if ingredientes_df.empty or "ingrediente" not in ingredientes_df.columns:
-        ingredientes_df = pd.DataFrame(columns=["ingrediente", "supermercado", "marca"])
-    if "marca" not in ingredientes_df.columns:
-        ingredientes_df["marca"] = None
+        if ingredientes_df.empty or "ingrediente" not in ingredientes_df.columns:
+            ingredientes_df = pd.DataFrame(columns=["ingrediente", "supermercado", "marca"])
+        if "marca" not in ingredientes_df.columns:
+            ingredientes_df["marca"] = None
 
-    edited = st.data_editor(
-        ingredientes_df[["ingrediente", "supermercado", "marca"]],
-        num_rows="dynamic",
-        use_container_width=True,
-        column_config={
-            "supermercado": st.column_config.SelectboxColumn(
-                "Supermercado",
-                options=["Mercadona", "Consum", "Pescatería", "Carnicería", "Cualquiera"]
-            ),
-            "marca": st.column_config.TextColumn("Marca (opcional)"),
-        },
-    )
+        opciones_super = sorted(supermercados_df["nombre"].tolist()) if not supermercados_df.empty else []
 
-    if st.button("💾 Guardar", type="primary"):
-        edited = edited.dropna(subset=["ingrediente"])
-        save_table("ingredientes", edited)
-        st.success("Lista de ingredientes actualizada.")
-        st.cache_data.clear()
+        st.markdown("Asigna cada ingrediente al supermercado donde lo compras habitualmente.")
+        edited = st.data_editor(
+            ingredientes_df[["ingrediente", "supermercado", "marca"]],
+            num_rows="dynamic",
+            use_container_width=True,
+            column_config={
+                "supermercado": st.column_config.SelectboxColumn(
+                    "Supermercado", options=opciones_super
+                ),
+                "marca": st.column_config.TextColumn("Marca (opcional)"),
+            },
+        )
+
+        if st.button("💾 Guardar", type="primary"):
+            edited = edited.dropna(subset=["ingrediente"])
+            save_table("ingredientes", edited)
+            st.success("Lista de ingredientes actualizada.")
+            st.cache_data.clear()
+
+    with tab_super:
+        supermercados_df = load_table("supermercados")
+        if supermercados_df.empty or "nombre" not in supermercados_df.columns:
+            supermercados_df = pd.DataFrame(columns=["nombre"])
+
+        st.markdown("Añade o elimina supermercados. Se usarán como opciones en la lista de ingredientes.")
+        edited_super = st.data_editor(
+            supermercados_df[["nombre"]],
+            num_rows="dynamic",
+            use_container_width=True,
+            column_config={"nombre": st.column_config.TextColumn("Supermercado")},
+        )
+
+        if st.button("💾 Guardar supermercados", type="primary"):
+            edited_super = edited_super.dropna(subset=["nombre"])
+            save_table("supermercados", edited_super)
+            st.success("Lista de supermercados actualizada.")
+            st.cache_data.clear()
