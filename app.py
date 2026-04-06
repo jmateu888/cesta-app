@@ -319,13 +319,22 @@ elif page == "🛍️ Lista de la compra":
     ICONOS = {"Mercadona": "🟢", "Consum": "🔵", "Pescatería": "🐟",
               "Carnicería": "🥩", "Cualquiera": "⚪", "Sin asignar": "⚠️"}
 
-    presentes = [s for s in ORDEN if s in agg["supermercado"].values]
-    cols = st.columns(len(presentes))
-    for i, super_name in enumerate(presentes):
-        with cols[i]:
-            st.subheader(f"{ICONOS[super_name]} {super_name}")
-            for _, r in agg[agg["supermercado"] == super_name].iterrows():
-                st.write(f"- {r['ingrediente']}: **{r['cantidad']:g} {r['unidad']}**")
+    todos_supers = sorted(agg["supermercado"].unique().tolist())
+
+    if not todos_supers:
+        st.info("No hay ingredientes con supermercado asignado.")
+        st.stop()
+
+    ICONOS_DEFAULT = {"Mercadona": "🟢", "Consum": "🔵", "Pescatería": "🐟",
+                      "Carnicería": "🥩", "Cualquiera": "⚪", "Sin asignar": "⚠️"}
+
+    for super_name in todos_supers:
+        icono = ICONOS_DEFAULT.get(super_name, "🏪")
+        st.subheader(f"{icono} {super_name}")
+        subset = agg[agg["supermercado"] == super_name]
+        for _, r in subset.iterrows():
+            st.write(f"- {r['ingrediente']}: **{r['cantidad']:g} {r['unidad']}**")
+        st.markdown("---")
 
 # ===========================================================================
 # PÁGINA: RECETAS
