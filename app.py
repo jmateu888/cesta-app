@@ -47,7 +47,9 @@ def save_table(name: str, df: pd.DataFrame):
     sb = get_client()
     sb.table(name).delete().gte("id", 0).execute()
     if not df.empty:
-        records = df.drop(columns=["id"], errors="ignore").to_dict("records")
+        df = df.drop(columns=["id"], errors="ignore")
+        df = df.where(pd.notnull(df), None)  # NaN → None para que JSON lo acepte
+        records = [{k: (None if v != v else v) for k, v in row.items()} for row in df.to_dict("records")]
         sb.table(name).insert(records).execute()
 
 def load_comidas() -> pd.DataFrame:
