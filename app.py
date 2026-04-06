@@ -401,7 +401,7 @@ elif page == "📖 Recetas":
 elif page == "🏪 Ingredientes":
     st.title("🏪 Ingredientes y supermercados")
 
-    tab_ing, tab_super = st.tabs(["Ingredientes", "Gestionar supermercados"])
+    tab_ing, tab_renombrar, tab_super = st.tabs(["Ingredientes", "Renombrar ingrediente", "Gestionar supermercados"])
 
     with tab_ing:
         ingredientes_df   = load_table("ingredientes")
@@ -432,6 +432,28 @@ elif page == "🏪 Ingredientes":
             save_table("ingredientes", edited)
             st.success("Lista de ingredientes actualizada.")
             st.cache_data.clear()
+
+    with tab_renombrar:
+        ingredientes_df2 = load_table("ingredientes")
+        opciones_renombrar = sorted(ingredientes_df2["ingrediente"].dropna().tolist()) if not ingredientes_df2.empty else []
+
+        if not opciones_renombrar:
+            st.info("No hay ingredientes para renombrar.")
+        else:
+            st.markdown("Renombra un ingrediente y se actualizará automáticamente en las recetas.")
+            ing_actual = st.selectbox("Ingrediente a renombrar", opciones_renombrar, key="ing_renombrar")
+            ing_nuevo  = st.text_input("Nuevo nombre", value=ing_actual, key="ing_nuevo")
+
+            if st.button("✏️ Renombrar", type="primary"):
+                if ing_nuevo and ing_nuevo != ing_actual:
+                    sb = get_client()
+                    sb.table("ingredientes").update({"ingrediente": ing_nuevo}).eq("ingrediente", ing_actual).execute()
+                    sb.table("recetas").update({"ingrediente": ing_nuevo}).eq("ingrediente", ing_actual).execute()
+                    st.success(f"'{ing_actual}' renombrado a '{ing_nuevo}' en ingredientes y recetas.")
+                    st.cache_data.clear()
+                    st.rerun()
+                else:
+                    st.warning("El nombre nuevo debe ser distinto al actual.")
 
     with tab_super:
         supermercados_df = load_table("supermercados")
