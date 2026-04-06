@@ -308,8 +308,10 @@ elif page == "🛍️ Lista de la compra":
         st.info("No hay ingredientes que mostrar.")
         st.stop()
 
+    shop_df = pd.DataFrame(shopping)
+    shop_df["unidad"] = shop_df["unidad"].fillna("")
     agg = (
-        pd.DataFrame(shopping)
+        shop_df
         .groupby(["supermercado", "ingrediente", "unidad"], as_index=False)["cantidad"]
         .sum()
         .sort_values(["supermercado", "ingrediente"])
