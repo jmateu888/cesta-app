@@ -356,6 +356,8 @@ elif page == "📖 Recetas":
 
     with tab_platos:
         st.markdown("Añade, edita o elimina platos del catálogo.")
+        if comidas_df.empty or "nombre" not in comidas_df.columns:
+            comidas_df = pd.DataFrame(columns=["nombre", "comida", "cena"])
         edited_comidas = st.data_editor(
             comidas_df[["nombre", "comida", "cena"]],
             num_rows="dynamic",
@@ -380,6 +382,9 @@ elif page == "🏪 Ingredientes":
     ingredientes_df = load_table("ingredientes")
 
     st.markdown("Asigna cada ingrediente al supermercado donde lo compras habitualmente.")
+
+    if ingredientes_df.empty or "ingrediente" not in ingredientes_df.columns:
+        ingredientes_df = pd.DataFrame(columns=["ingrediente", "supermercado"])
 
     edited = st.data_editor(
         ingredientes_df[["ingrediente", "supermercado"]],
