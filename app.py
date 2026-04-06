@@ -29,7 +29,7 @@ def get_client():
 COLUMNAS = {
     "comidas":       ["nombre", "comida", "cena"],
     "recetas":       ["comida", "ingrediente", "cantidad", "unidad"],
-    "ingredientes":  ["ingrediente", "supermercado"],
+    "ingredientes":  ["ingrediente", "supermercado", "marca"],
     "planificacion": ["fecha", "tipo", "comida", "personas"],
 }
 
@@ -394,17 +394,20 @@ elif page == "🏪 Ingredientes":
     st.markdown("Asigna cada ingrediente al supermercado donde lo compras habitualmente.")
 
     if ingredientes_df.empty or "ingrediente" not in ingredientes_df.columns:
-        ingredientes_df = pd.DataFrame(columns=["ingrediente", "supermercado"])
+        ingredientes_df = pd.DataFrame(columns=["ingrediente", "supermercado", "marca"])
+    if "marca" not in ingredientes_df.columns:
+        ingredientes_df["marca"] = None
 
     edited = st.data_editor(
-        ingredientes_df[["ingrediente", "supermercado"]],
+        ingredientes_df[["ingrediente", "supermercado", "marca"]],
         num_rows="dynamic",
         use_container_width=True,
         column_config={
             "supermercado": st.column_config.SelectboxColumn(
                 "Supermercado",
                 options=["Mercadona", "Consum", "Pescatería", "Carnicería", "Cualquiera"]
-            )
+            ),
+            "marca": st.column_config.TextColumn("Marca (opcional)"),
         },
     )
 
