@@ -333,7 +333,7 @@ elif page == "🛍️ Lista de la compra":
             subset = agg[agg["supermercado"] == super_name]
             for _, r in subset.iterrows():
                 cantidad_final = st.session_state.get(f"qty_{r['supermercado']}_{r['ingrediente']}", r["cantidad"])
-                st.markdown(f"- {r['ingrediente']}: **{cantidad_final:g} {r['unidad']}**")
+                st.markdown(f"- **{r['ingrediente']}** — {cantidad_final:g} {r['unidad']}")
             st.divider()
 
     # ── MODO EDICIÓN ──────────────────────────────────────────────────────────
@@ -363,7 +363,7 @@ elif page == "🛍️ Lista de la compra":
                 step    = 50.0 if unidad in ["g", "ml"] else 1.0
                 c1, c2, c3, c4 = st.columns([4, 1, 2, 1])
                 with c1:
-                    st.write(f"{r['ingrediente']}")
+                    st.markdown(f"**{r['ingrediente']}**")
                 with c2:
                     if st.button("➖", key=f"m_{key}", use_container_width=True):
                         st.session_state[key] = max(0.0, st.session_state[key] - step)
