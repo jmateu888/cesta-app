@@ -356,21 +356,19 @@ elif page == "🛍️ Lista de la compra":
             st.subheader(f"{icono} {super_name}")
             subset = agg[agg["supermercado"] == super_name]
             for _, r in subset.iterrows():
-                key     = f"qty_{r['supermercado']}_{r['ingrediente']}"
+                key    = f"qty_{r['supermercado']}_{r['ingrediente']}"
                 if key not in st.session_state:
                     st.session_state[key] = r["cantidad"]
-                unidad  = r["unidad"]
-                step    = 50.0 if unidad in ["g", "ml"] else 1.0
-                c1, c2, c3, c4 = st.columns([4, 1, 2, 1])
+                unidad = r["unidad"]
+                step   = 50.0 if unidad in ["g", "ml"] else 1.0
+                c1, c2, c3 = st.columns([6, 1, 1])
                 with c1:
-                    st.markdown(f"**{r['ingrediente']}**")
+                    st.markdown(f"**{r['ingrediente']}** — {st.session_state[key]:g} {unidad}")
                 with c2:
                     if st.button("➖", key=f"m_{key}", use_container_width=True):
                         st.session_state[key] = max(0.0, st.session_state[key] - step)
                         st.rerun()
                 with c3:
-                    st.write(f"**{st.session_state[key]:g} {unidad}**")
-                with c4:
                     if st.button("➕", key=f"p_{key}", use_container_width=True):
                         st.session_state[key] += step
                         st.rerun()
