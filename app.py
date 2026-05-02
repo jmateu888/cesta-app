@@ -32,6 +32,8 @@ COLUMNAS = {
     "ingredientes":   ["ingrediente", "supermercado", "marca"],
     "planificacion":  ["fecha", "tipo", "comida", "personas"],
     "supermercados":  ["nombre"],
+    "articulos":      ["articulo", "supermercado", "marca"],
+    "lista_otros":    ["articulo", "supermercado"],
 }
 
 # ---------------------------------------------------------------------------
@@ -152,6 +154,7 @@ page = st.sidebar.radio("Sección", [
     "🛍️ Lista de la compra",
     "📖 Recetas",
     "🏪 Ingredientes",
+    "🧹 Otros",
 ])
 
 # ===========================================================================
@@ -240,6 +243,7 @@ elif page == "🛍️ Lista de la compra":
     plan_df         = load_planificacion()
     recetas_df      = load_table("recetas")
     ingredientes_df = load_table("ingredientes")
+    lista_otros_df  = load_table("lista_otros")
 
     if plan_df.empty:
         st.warning("No hay planificación guardada. Ve primero a **Planificación**.")
@@ -295,6 +299,16 @@ elif page == "🛍️ Lista de la compra":
         st.warning(f"⚠️ Sin receta: {', '.join(sin_receta)}")
     if sin_super:
         st.warning(f"⚠️ Sin supermercado: {', '.join(sin_super)}")
+
+    # Añadir artículos de lista_otros
+    if not lista_otros_df.empty and "articulo" in lista_otros_df.columns:
+        for _, row in lista_otros_df.iterrows():
+            shopping.append({
+                "ingrediente": row["articulo"],
+                "cantidad":    1,
+                "unidad":      "",
+                "supermercado": row.get("supermercado", "Sin asignar") or "Sin asignar",
+            })
 
     if not shopping:
         st.info("No hay ingredientes que mostrar.")
@@ -520,3 +534,84 @@ elif page == "🏪 Ingredientes":
             save_table("supermercados", edited_super)
             st.success("Lista de supermercados actualizada.")
             st.cache_data.clear()
+
+# ===========================================================================
+# PÁGINA: OTROS
+# ===========================================================================
+elif page == "🧹 Otros":
+    st.title("🧹 Otros artículos")
+
+    supermercados_df = load_table("supermercados")
+    opciones_super   = sorted(supermercados_df["nombre"].tolist()) if not supermercados_df.empty else []
+
+    tab_catalogo, tab_lista = st.tabs(["Catálogo de artículos", "Planificador - Otros"])
+
+    # ── CATÁLOGO ──────────────────────────────────────────────────────────────
+    with tab_catalogo:
+        articulos_df = load_table("articulos")
+        if articulos_df.empty or "articulo" not in articulos_df.columns:
+            articulos_df = pd.DataFrame(columns=["articulo", "supermercado", "marca"])
+        if "marca" not in articulos_df.columns:
+            articulos_df["marca"] = None
+
+        st.markdown("Añade los artículos que compras habitualmente (detergentes, productos de limpieza, etc.)")
+        edited_art = st.data_editor(
+            articulos_df[["articulo", "supermercado", "marca"]],
+            num_rows="dynamic",
+            use_container_width=True,
+            column_config={
+                "articulo":     st.column_config.TextColumn("Artículo"),
+                "supermercado": st.column_config.SelectboxColumn("Supermercado", options=opciones_super),
+                "marca":        st.column_config.TextColumn("Marca (opcional)"),
+            },
+        )
+        if st.button("💾 Guardar catálogo", type="primary"):
+            edited_art = edited_art.dropna(subset=["articulo"])
+            save_table("articulos", edited_art)
+            st.success("Catálogo actualizado.")
+            st.cache_data.clear()
+
+    # ── PLANIFICAR COMPRA ─────────────────────────────────────────────────────
+    with tab_lista:
+        articulos_df = load_table("articulos")
+        lista_df     = load_table("lista_otros")
+
+        if articulos_df.empty or "articulo" not in articulos_df.columns:
+            st.info("Primero añade artículos en la pestaña Catálogo.")
+        else:
+            opciones_art = sorted(articulos_df["articulo"].dropna().tolist())
+
+            c1, c2 = st.columns([4, 1])
+            with c1:
+                art_sel = st.selectbox("Artículo", opciones_art)
+            with c2:
+                st.markdown("<br>", unsafe_allow_html=True)
+                if st.button("➕ Añadir"):
+                    super_art = articulos_df[articulos_df["articulo"] == art_sel]["supermercado"].values
+                    supermercado = super_art[0] if len(super_art) else ""
+                    sb = get_client()
+                    sb.table("lista_otros").insert({"articulo": art_sel, "supermercado": supermercado}).execute()
+                    st.cache_data.clear()
+                    st.rerun()
+
+            st.markdown("---")
+
+            if lista_df.empty or "articulo" not in lista_df.columns:
+                st.info("No hay artículos en la lista. Añade alguno arriba.")
+            else:
+                st.markdown("**Artículos a comprar:**")
+                for _, row in lista_df.iterrows():
+                    c1, c2 = st.columns([6, 1])
+                    with c1:
+                        st.markdown(f"- **{row['articulo']}** — {row.get('supermercado', '')}")
+                    with c2:
+                        if st.button("🗑️", key=f"del_otro_{row['id']}"):
+                            get_client().table("lista_otros").delete().eq("id", int(row["id"])).execute()
+                            st.cache_data.clear()
+                            st.rerun()
+
+                st.markdown("---")
+                if st.button("🗑️ Borrar toda la lista", type="secondary"):
+                    get_client().table("lista_otros").delete().gte("id", 0).execute()
+                    st.cache_data.clear()
+                    st.rerun()
