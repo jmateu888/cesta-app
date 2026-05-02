@@ -317,9 +317,8 @@ elif page == "🛍️ Lista de la compra":
         .sort_values(["supermercado", "ingrediente"])
     )
 
-    ORDEN  = ["Mercadona", "Consum", "Pescatería", "Carnicería", "Cualquiera", "Sin asignar"]
-    ICONOS = {"Mercadona": "🟢", "Consum": "🔵", "Pescatería": "🐟",
-              "Carnicería": "🥩", "Cualquiera": "⚪", "Sin asignar": "⚠️"}
+    ICONOS_DEFAULT = {"Mercadona": "🟢", "Consum": "🔵", "Pescatería": "🐟",
+                      "Carnicería": "🥩", "Cualquiera": "⚪", "Sin asignar": "⚠️"}
 
     todos_supers = sorted(agg["supermercado"].unique().tolist())
 
@@ -327,15 +326,57 @@ elif page == "🛍️ Lista de la compra":
         st.info("No hay ingredientes con supermercado asignado.")
         st.stop()
 
-    ICONOS_DEFAULT = {"Mercadona": "🟢", "Consum": "🔵", "Pescatería": "🐟",
-                      "Carnicería": "🥩", "Cualquiera": "⚪", "Sin asignar": "⚠️"}
+    # Inicializar ajustes en session_state
+    for _, r in agg.iterrows():
+        skey = f"ajuste_{r['supermercado']}_{r['ingrediente']}"
+        if skey not in st.session_state:
+            st.session_state[skey] = 0
+
+    hay_ajustes = any(
+        st.session_state.get(f"ajuste_{r['supermercado']}_{r['ingrediente']}", 0) != 0
+        for _, r in agg.iterrows()
+    )
+    if hay_ajustes:
+        if st.button("🔄 Restablecer ajustes"):
+            for _, r in agg.iterrows():
+                st.session_state[f"ajuste_{r['supermercado']}_{r['ingrediente']}"] = 0
+            st.rerun()
 
     for super_name in todos_supers:
         icono = ICONOS_DEFAULT.get(super_name, "🏪")
         st.subheader(f"{icono} {super_name}")
         subset = agg[agg["supermercado"] == super_name]
+
         for _, r in subset.iterrows():
-            st.write(f"- {r['ingrediente']}: **{r['cantidad']:g} {r['unidad']}**")
+            skey      = f"ajuste_{r['supermercado']}_{r['ingrediente']}"
+            calculada = r["cantidad"]
+            ajuste    = st.session_state[skey]
+            unidad    = r["unidad"]
+            step      = 50 if unidad in ["g", "ml"] else 1
+            comprar   = max(0.0, calculada + ajuste)
+
+            col1, col2, col3, col4 = st.columns([4, 1, 3, 1])
+            with col1:
+                st.write(f"**{r['ingrediente']}**")
+            with col2:
+                if st.button("➖", key=f"minus_{skey}", use_container_width=True):
+                    if calculada + st.session_state[skey] - step >= 0:
+                        st.session_state[skey] -= step
+                    st.rerun()
+            with col3:
+                if ajuste == 0:
+                    st.write(f"**{comprar:g} {unidad}**")
+                else:
+                    st.markdown(
+                        f"**{comprar:g} {unidad}**"
+                        f"&nbsp;&nbsp;<small style='color:gray'>calc: {calculada:g}</small>",
+                        unsafe_allow_html=True,
+                    )
+            with col4:
+                if st.button("➕", key=f"plus_{skey}", use_container_width=True):
+                    st.session_state[skey] += step
+                    st.rerun()
+
         st.markdown("---")
 
 # ===========================================================================
