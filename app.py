@@ -199,27 +199,29 @@ if page == "🗓️ Planificación":
     dias  = [today + timedelta(days=i) for i in range(num_dias)]
     selections = {}  # (fecha, tipo) -> (comida, personas)
 
+    opciones_personas = list(range(1, 21))
+
     for d in dias:
         st.markdown(f"**📅 {format_fecha(d)}**")
-        c1, c2, c3, c4 = st.columns([4, 1, 4, 1])
+        c1, c2 = st.columns(2)
         with c1:
             prev = plan_lookup.get((d, "comida"), "— sin planificar —")
             idx  = opciones_comida.index(prev) if prev in opciones_comida else 0
             comida_sel = st.selectbox("🍽️ Comida", opciones_comida, index=idx, key=f"c_{d}")
-        with c2:
-            p_comida = st.number_input(
-                "👥", min_value=1, max_value=20,
-                value=personas_lookup.get((d, "comida"), default_personas),
+            p_prev = personas_lookup.get((d, "comida"), default_personas)
+            p_comida = st.selectbox(
+                "👥 personas", opciones_personas,
+                index=opciones_personas.index(p_prev) if p_prev in opciones_personas else default_personas - 1,
                 key=f"pc_{d}"
             )
-        with c3:
+        with c2:
             prev = plan_lookup.get((d, "cena"), "— sin planificar —")
             idx  = opciones_cena.index(prev) if prev in opciones_cena else 0
             cena_sel = st.selectbox("🌙 Cena", opciones_cena, index=idx, key=f"ce_{d}")
-        with c4:
-            p_cena = st.number_input(
-                "👥", min_value=1, max_value=20,
-                value=personas_lookup.get((d, "cena"), default_personas),
+            p_prev = personas_lookup.get((d, "cena"), default_personas)
+            p_cena = st.selectbox(
+                "👥 personas", opciones_personas,
+                index=opciones_personas.index(p_prev) if p_prev in opciones_personas else default_personas - 1,
                 key=f"pce_{d}"
             )
         selections[(d, "comida")] = (comida_sel, p_comida)
