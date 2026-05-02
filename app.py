@@ -181,24 +181,18 @@ if page == "🗓️ Planificación":
 
     st.markdown("---")
 
-    opciones_comida = ["— sin planificar —"] + sorted(
-        comidas_df[comidas_df["comida"] == True]["nombre"].tolist()
-    )
-    opciones_cena = ["— sin planificar —"] + sorted(
-        comidas_df[comidas_df["cena"] == True]["nombre"].tolist()
-    )
+    opciones_comida = ["— sin planificar —"] + sorted(comidas_df[comidas_df["comida"] == True]["nombre"].tolist())
+    opciones_cena   = ["— sin planificar —"] + sorted(comidas_df[comidas_df["cena"]   == True]["nombre"].tolist())
 
-    # Lookup de comida y personas guardadas
     plan_lookup = {}
     personas_lookup = {}
     for _, row in plan_df.iterrows():
-        plan_lookup[(row["fecha"], row["tipo"])]    = row["comida"]
-        personas_lookup[(row["fecha"], row["tipo"])]= int(row["personas"])
+        plan_lookup[(row["fecha"], row["tipo"])]     = row["comida"]
+        personas_lookup[(row["fecha"], row["tipo"])] = int(row["personas"])
 
     today = date.today()
     dias  = [today + timedelta(days=i) for i in range(num_dias)]
-    selections = {}  # (fecha, tipo) -> (comida, personas)
-
+    selections    = {}
     opciones_personas = list(range(1, 21))
 
     for d in dias:
@@ -208,22 +202,18 @@ if page == "🗓️ Planificación":
             prev = plan_lookup.get((d, "comida"), "— sin planificar —")
             idx  = opciones_comida.index(prev) if prev in opciones_comida else 0
             comida_sel = st.selectbox("🍽️ Comida", opciones_comida, index=idx, key=f"c_{d}")
-            p_prev = personas_lookup.get((d, "comida"), default_personas)
-            p_comida = st.selectbox(
-                "👥 personas", opciones_personas,
+            p_prev   = personas_lookup.get((d, "comida"), default_personas)
+            p_comida = st.selectbox("👥", opciones_personas,
                 index=opciones_personas.index(p_prev) if p_prev in opciones_personas else default_personas - 1,
-                key=f"pc_{d}"
-            )
+                key=f"pc_{d}")
         with c2:
             prev = plan_lookup.get((d, "cena"), "— sin planificar —")
             idx  = opciones_cena.index(prev) if prev in opciones_cena else 0
             cena_sel = st.selectbox("🌙 Cena", opciones_cena, index=idx, key=f"ce_{d}")
-            p_prev = personas_lookup.get((d, "cena"), default_personas)
-            p_cena = st.selectbox(
-                "👥 personas", opciones_personas,
+            p_prev  = personas_lookup.get((d, "cena"), default_personas)
+            p_cena  = st.selectbox("👥", opciones_personas,
                 index=opciones_personas.index(p_prev) if p_prev in opciones_personas else default_personas - 1,
-                key=f"pce_{d}"
-            )
+                key=f"pce_{d}")
         selections[(d, "comida")] = (comida_sel, p_comida)
         selections[(d, "cena")]   = (cena_sel,   p_cena)
         st.markdown("---")
@@ -328,58 +318,63 @@ elif page == "🛍️ Lista de la compra":
         st.info("No hay ingredientes con supermercado asignado.")
         st.stop()
 
-    # Inicializar ajustes en session_state
-    for _, r in agg.iterrows():
-        skey = f"ajuste_{r['supermercado']}_{r['ingrediente']}"
-        if skey not in st.session_state:
-            st.session_state[skey] = 0
+    if "lista_edicion" not in st.session_state:
+        st.session_state.lista_edicion = False
 
-    hay_ajustes = any(
-        st.session_state.get(f"ajuste_{r['supermercado']}_{r['ingrediente']}", 0) != 0
-        for _, r in agg.iterrows()
-    )
-    if hay_ajustes:
-        if st.button("🔄 Restablecer ajustes"):
-            for _, r in agg.iterrows():
-                st.session_state[f"ajuste_{r['supermercado']}_{r['ingrediente']}"] = 0
+    # ── MODO VISTA ────────────────────────────────────────────────────────────
+    if not st.session_state.lista_edicion:
+        if st.button("✏️ Editar cantidades"):
+            st.session_state.lista_edicion = True
             st.rerun()
 
-    for super_name in todos_supers:
-        icono = ICONOS_DEFAULT.get(super_name, "🏪")
-        st.subheader(f"{icono} {super_name}")
-        subset = agg[agg["supermercado"] == super_name]
+        for super_name in todos_supers:
+            icono = ICONOS_DEFAULT.get(super_name, "🏪")
+            st.subheader(f"{icono} {super_name}")
+            subset = agg[agg["supermercado"] == super_name]
+            for _, r in subset.iterrows():
+                cantidad_final = st.session_state.get(f"qty_{r['supermercado']}_{r['ingrediente']}", r["cantidad"])
+                st.markdown(f"- {r['ingrediente']}: **{cantidad_final:g} {r['unidad']}**")
+            st.divider()
 
-        for _, r in subset.iterrows():
-            skey      = f"ajuste_{r['supermercado']}_{r['ingrediente']}"
-            calculada = r["cantidad"]
-            ajuste    = st.session_state[skey]
-            unidad    = r["unidad"]
-            step      = 50 if unidad in ["g", "ml"] else 1
-            comprar   = max(0.0, calculada + ajuste)
+    # ── MODO EDICIÓN ──────────────────────────────────────────────────────────
+    else:
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("💾 Guardar y volver", type="primary"):
+                st.session_state.lista_edicion = False
+                st.rerun()
+        with c2:
+            if st.button("🔄 Restablecer cantidades"):
+                for _, r in agg.iterrows():
+                    key = f"qty_{r['supermercado']}_{r['ingrediente']}"
+                    st.session_state[key] = r["cantidad"]
+                st.session_state.lista_edicion = False
+                st.rerun()
 
-            col1, col2, col3, col4 = st.columns([4, 1, 3, 1])
-            with col1:
-                st.write(f"**{r['ingrediente']}**")
-            with col2:
-                if st.button("➖", key=f"minus_{skey}", use_container_width=True):
-                    if calculada + st.session_state[skey] - step >= 0:
-                        st.session_state[skey] -= step
-                    st.rerun()
-            with col3:
-                if ajuste == 0:
-                    st.write(f"**{comprar:g} {unidad}**")
-                else:
-                    st.markdown(
-                        f"**{comprar:g} {unidad}**"
-                        f"&nbsp;&nbsp;<small style='color:gray'>calc: {calculada:g}</small>",
-                        unsafe_allow_html=True,
-                    )
-            with col4:
-                if st.button("➕", key=f"plus_{skey}", use_container_width=True):
-                    st.session_state[skey] += step
-                    st.rerun()
-
-        st.markdown("---")
+        for super_name in todos_supers:
+            icono = ICONOS_DEFAULT.get(super_name, "🏪")
+            st.subheader(f"{icono} {super_name}")
+            subset = agg[agg["supermercado"] == super_name]
+            for _, r in subset.iterrows():
+                key     = f"qty_{r['supermercado']}_{r['ingrediente']}"
+                if key not in st.session_state:
+                    st.session_state[key] = r["cantidad"]
+                unidad  = r["unidad"]
+                step    = 50.0 if unidad in ["g", "ml"] else 1.0
+                c1, c2, c3, c4 = st.columns([4, 1, 2, 1])
+                with c1:
+                    st.write(f"{r['ingrediente']}")
+                with c2:
+                    if st.button("➖", key=f"m_{key}", use_container_width=True):
+                        st.session_state[key] = max(0.0, st.session_state[key] - step)
+                        st.rerun()
+                with c3:
+                    st.write(f"**{st.session_state[key]:g} {unidad}**")
+                with c4:
+                    if st.button("➕", key=f"p_{key}", use_container_width=True):
+                        st.session_state[key] += step
+                        st.rerun()
+            st.divider()
 
 # ===========================================================================
 # PÁGINA: RECETAS
