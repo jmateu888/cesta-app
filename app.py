@@ -365,12 +365,12 @@ elif page == "🛍️ Lista de la compra":
                 with c1:
                     st.markdown(f"**{r['ingrediente']}** — {st.session_state[key]:g} {unidad}")
                 with c2:
-                    if st.button("➖", key=f"m_{key}", use_container_width=True):
-                        st.session_state[key] = max(0.0, st.session_state[key] - step)
-                        st.rerun()
-                with c3:
                     if st.button("➕", key=f"p_{key}", use_container_width=True):
                         st.session_state[key] += step
+                        st.rerun()
+                with c3:
+                    if st.button("➖", key=f"m_{key}", use_container_width=True):
+                        st.session_state[key] = max(0.0, st.session_state[key] - step)
                         st.rerun()
             st.divider()
 
