@@ -423,7 +423,7 @@ elif page == "📖 Recetas":
                     "Ingrediente", options=opciones_ingredientes
                 ),
                 "unidad": st.column_config.SelectboxColumn(
-                    "Unidad", options=["g", "kg", "ml", "l", "ud", "lata", "cucharada"]
+                    "Unidad", options=sorted(["g", "kg", "ml", "l", "ud", "lata", "cucharada"])
                 ),
             },
         )
