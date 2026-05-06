@@ -29,7 +29,7 @@ def get_client():
 COLUMNAS = {
     "comidas":        ["nombre", "comida", "cena"],
     "recetas":        ["comida", "ingrediente", "cantidad", "unidad"],
-    "ingredientes":   ["ingrediente", "supermercado", "marca"],
+    "ingredientes":   ["ingrediente", "supermercado", "marca", "perecedero"],
     "planificacion":  ["fecha", "tipo", "comida", "personas"],
     "supermercados":  ["nombre"],
     "articulos":      ["articulo", "supermercado", "marca"],
@@ -265,6 +265,13 @@ elif page == "🛍️ Lista de la compra":
 
     st.markdown("---")
 
+    perecedero_map = {}
+    if "perecedero" in ingredientes_df.columns:
+        for _, r in ingredientes_df.iterrows():
+            perecedero_map[r["ingrediente"]] = bool(r.get("perecedero") or False)
+
+    max_fecha_map = {}
+
     shopping   = []
     sin_receta = []
     sin_super  = []
@@ -287,6 +294,11 @@ elif page == "🛍️ Lista de la compra":
             supermercado = store_row.iloc[0]["supermercado"] if not store_row.empty else "Sin asignar"
             if store_row.empty and ingrediente not in sin_super:
                 sin_super.append(ingrediente)
+
+            if perecedero_map.get(ingrediente, False):
+                fecha = row["fecha"]
+                if fecha and (ingrediente not in max_fecha_map or fecha > max_fecha_map[ingrediente]):
+                    max_fecha_map[ingrediente] = fecha
 
             shopping.append({
                 "ingrediente": ingrediente,
@@ -347,7 +359,10 @@ elif page == "🛍️ Lista de la compra":
             subset = agg[agg["supermercado"] == super_name]
             for _, r in subset.iterrows():
                 cantidad_final = st.session_state.get(f"qty_{r['supermercado']}_{r['ingrediente']}", r["cantidad"])
-                st.markdown(f"- **{r['ingrediente']}** — {cantidad_final:g} {r['unidad']}")
+                perecedero_tag = ""
+                if perecedero_map.get(r["ingrediente"], False) and r["ingrediente"] in max_fecha_map:
+                    perecedero_tag = f" — ⏰ hasta {format_fecha(max_fecha_map[r['ingrediente']])}"
+                st.markdown(f"- **{r['ingrediente']}** — {cantidad_final:g} {r['unidad']}{perecedero_tag}")
             st.divider()
 
     # ── MODO EDICIÓN ──────────────────────────────────────────────────────────
@@ -377,7 +392,10 @@ elif page == "🛍️ Lista de la compra":
                 step   = 50.0 if unidad in ["g", "ml"] else 1.0
                 c1, c2, c3 = st.columns([6, 1, 1])
                 with c1:
-                    st.markdown(f"**{r['ingrediente']}** — {st.session_state[key]:g} {unidad}")
+                    perecedero_tag = ""
+                    if perecedero_map.get(r["ingrediente"], False) and r["ingrediente"] in max_fecha_map:
+                        perecedero_tag = f" — ⏰ hasta {format_fecha(max_fecha_map[r['ingrediente']])}"
+                    st.markdown(f"**{r['ingrediente']}** — {st.session_state[key]:g} {unidad}{perecedero_tag}")
                 with c2:
                     if st.button("➕", key=f"p_{key}", use_container_width=True):
                         st.session_state[key] += step
@@ -469,15 +487,17 @@ elif page == "🏪 Ingredientes":
         supermercados_df  = load_table("supermercados")
 
         if ingredientes_df.empty or "ingrediente" not in ingredientes_df.columns:
-            ingredientes_df = pd.DataFrame(columns=["ingrediente", "supermercado", "marca"])
+            ingredientes_df = pd.DataFrame(columns=["ingrediente", "supermercado", "marca", "perecedero"])
         if "marca" not in ingredientes_df.columns:
             ingredientes_df["marca"] = None
+        if "perecedero" not in ingredientes_df.columns:
+            ingredientes_df["perecedero"] = False
 
         opciones_super = sorted(supermercados_df["nombre"].tolist()) if not supermercados_df.empty else []
 
         st.markdown("Asigna cada ingrediente al supermercado donde lo compras habitualmente.")
         edited = st.data_editor(
-            ingredientes_df[["ingrediente", "supermercado", "marca"]],
+            ingredientes_df[["ingrediente", "supermercado", "marca", "perecedero"]],
             num_rows="dynamic",
             use_container_width=True,
             column_config={
@@ -485,6 +505,7 @@ elif page == "🏪 Ingredientes":
                     "Supermercado", options=opciones_super
                 ),
                 "marca": st.column_config.TextColumn("Marca (opcional)"),
+                "perecedero": st.column_config.CheckboxColumn("⏰ Perecedero"),
             },
         )
 
